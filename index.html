@@ -56,9 +56,35 @@
       max-width: 720px;
     }
 
+    .toolbar {
+      display: flex;
+      justify-content: flex-end;
+      margin: 0 0 14px;
+    }
+
+    .ghost-btn, .primary-btn {
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 14px;
+      background: rgba(15,23,42,0.55);
+      color: var(--text);
+      padding: 12px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .ghost-btn:hover, .primary-btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(56,189,248,0.45);
+    }
+
+    .primary-btn {
+      background: linear-gradient(135deg, rgba(34,197,94,0.18), rgba(56,189,248,0.16));
+    }
+
     .grid {
       display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
+      grid-template-columns: 1.05fr 0.95fr;
       gap: 18px;
     }
 
@@ -115,9 +141,7 @@
       box-shadow: 0 0 0 4px rgba(56,189,248,0.16);
     }
 
-    .full { grid-column: 1 / -1; }
-
-    .note {
+    .hint {
       margin-top: 14px;
       padding: 14px;
       border-radius: 16px;
@@ -150,6 +174,36 @@
       font-size: clamp(22px, 4.6vw, 34px);
       font-weight: 800;
       letter-spacing: -0.02em;
+    }
+
+    .admin-panel {
+      margin-top: 18px;
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(15,23,42,0.5);
+      border: 1px dashed rgba(255,255,255,0.16);
+      display: none;
+    }
+
+    .admin-panel.active {
+      display: block;
+    }
+
+    .admin-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .admin-badge {
+      font-size: 12px;
+      color: #bfdbfe;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(59,130,246,0.14);
+      border: 1px solid rgba(59,130,246,0.2);
     }
 
     .mini-grid {
@@ -188,25 +242,63 @@
       line-height: 1.6;
     }
 
-    .footer {
-      margin-top: 16px;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.55;
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(2,6,23,0.72);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      z-index: 20;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-card {
+      width: min(100%, 420px);
+      background: #0f172a;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .modal-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .error {
+      min-height: 20px;
+      margin-top: 10px;
+      color: #fdba74;
+      font-size: 13px;
     }
 
     @media (max-width: 760px) {
-      .grid, .form-grid, .mini-grid {
+      .grid, .form-grid, .mini-grid, .modal-actions {
         grid-template-columns: 1fr;
       }
       .wrap { padding: 16px 12px 28px; }
-      .card-inner { padding: 16px; }
+      .card-inner, .modal-card { padding: 16px; }
       input, select { font-size: 16px; }
+      .toolbar { justify-content: stretch; }
+      .ghost-btn { width: 100%; }
+      .admin-top { flex-direction: column; align-items: flex-start; }
     }
   </style>
 </head>
 <body>
   <div class="wrap">
+    <div class="toolbar">
+      <button class="ghost-btn" id="adminOpenBtn" type="button">Режим модератора</button>
+    </div>
+
     <section class="hero">
       <h1>Калькулятор стоимости 3D-печати</h1>
       <p>
@@ -220,14 +312,6 @@
         <div class="card-inner">
           <h2 class="section-title">Входные данные</h2>
           <div class="form-grid">
-            <div class="field">
-              <label for="plasticPrice">Цена пластика (грн/кг)</label>
-              <input id="plasticPrice" type="number" min="0" step="1" value="800" />
-            </div>
-            <div class="field">
-              <label for="hourlyRate">Стоимость часа печати (грн/ч)</label>
-              <input id="hourlyRate" type="number" min="0" step="1" value="10" />
-            </div>
             <div class="field">
               <label for="weight">Вес изделия (г)</label>
               <input id="weight" type="number" min="0" step="0.1" value="100" />
@@ -245,7 +329,7 @@
               <select id="markup"></select>
             </div>
           </div>
-        
+         
         </div>
       </section>
 
@@ -267,42 +351,87 @@
             </div>
           </div>
 
-          <div class="mini-grid">
-            <div class="mini">
-              <div class="label">Цена за 1 г</div>
-              <div class="value" id="pricePerGramValue">0 грн</div>
+          <section class="admin-panel" id="adminPanel">
+            <div class="admin-top">
+              <div>
+                <h3 class="section-title" style="margin-bottom:6px;">Скрытые настройки</h3>
+                <div class="admin-badge">Видно только модератору</div>
+              </div>
+              <button class="ghost-btn" id="adminCloseBtn" type="button">Скрыть</button>
             </div>
-            <div class="mini">
-              <div class="label">Коэффициент цветов</div>
-              <div class="value" id="colorCoefValue">0</div>
-            </div>
-            <div class="mini">
-              <div class="label">Материал</div>
-              <div class="value" id="materialValue">0 грн</div>
-            </div>
-            <div class="mini">
-              <div class="label">Время</div>
-              <div class="value" id="timeValue">0 грн</div>
-            </div>
-          </div>
 
-          <div class="formula">
-            <div><strong>Формула:</strong></div>
-            <div>Материал = (цена пластика / 1000) × вес × коэффициент цветов</div>
-            <div>Себестоимость = материал + время печати × ставка за час</div>
-            <div>Цена продажи = себестоимость × (1 + наценка / 100)</div>
-            <div>Доход = цена продажи − себестоимость</div>
-          </div>
+            <div class="form-grid">
+              <div class="field">
+                <label for="plasticPrice">Цена пластика (грн/кг)</label>
+                <input id="plasticPrice" type="number" min="0" step="1" value="800" />
+              </div>
+              <div class="field">
+                <label for="hourlyRate">Стоимость часа печати (грн/ч)</label>
+                <input id="hourlyRate" type="number" min="0" step="1" value="10" />
+              </div>
+            </div>
 
-      
+            <div class="mini-grid">
+              <div class="mini">
+                <div class="label">Цена за 1 г</div>
+                <div class="value" id="pricePerGramValue">0 грн</div>
+              </div>
+              <div class="mini">
+                <div class="label">Коэффициент цветов</div>
+                <div class="value" id="colorCoefValue">0</div>
+              </div>
+              <div class="mini">
+                <div class="label">Материал</div>
+                <div class="value" id="materialValue">0 грн</div>
+              </div>
+              <div class="mini">
+                <div class="label">Время</div>
+                <div class="value" id="timeValue">0 грн</div>
+              </div>
+            </div>
+
+            <div class="formula">
+              <div><strong>Формула:</strong></div>
+              <div>Материал = (цена пластика / 1000) × вес × коэффициент цветов</div>
+              <div>Себестоимость = материал + время печати × ставка за час</div>
+              <div>Цена продажи = себестоимость × (1 + наценка / 100)</div>
+              <div>Доход = цена продажи − себестоимость</div>
+            </div>
+          </section>
         </div>
       </section>
     </main>
   </div>
 
+  <div class="modal" id="adminModal" aria-hidden="true">
+    <div class="modal-card">
+      <h2 class="section-title">Вход для модератора</h2>
+      <div class="field">
+        <label for="adminPassword">Пароль</label>
+        <input id="adminPassword" type="password" placeholder="Введите пароль" autocomplete="current-password" />
+      </div>
+      <div class="error" id="adminError"></div>
+      <div class="modal-actions">
+        <button class="primary-btn" id="adminSubmitBtn" type="button">Открыть настройки</button>
+        <button class="ghost-btn" id="adminCancelBtn" type="button">Отмена</button>
+      </div>
+    </div>
+  </div>
+
   <script>
+    const ADMIN_PASSWORD = '12345678';
+    const STORAGE_KEY = 'printCalcAdminVisible';
+
     const colorsSelect = document.getElementById('colors');
     const markupSelect = document.getElementById('markup');
+    const adminModal = document.getElementById('adminModal');
+    const adminPanel = document.getElementById('adminPanel');
+    const adminOpenBtn = document.getElementById('adminOpenBtn');
+    const adminCloseBtn = document.getElementById('adminCloseBtn');
+    const adminSubmitBtn = document.getElementById('adminSubmitBtn');
+    const adminCancelBtn = document.getElementById('adminCancelBtn');
+    const adminPassword = document.getElementById('adminPassword');
+    const adminError = document.getElementById('adminError');
 
     for (let i = 1; i <= 10; i += 1) {
       const option = document.createElement('option');
@@ -320,13 +449,31 @@
       markupSelect.appendChild(option);
     }
 
-    const ids = [
-      'plasticPrice', 'hourlyRate', 'weight', 'printTime', 'colors', 'markup'
-    ];
+    const ids = ['plasticPrice', 'hourlyRate', 'weight', 'printTime', 'colors', 'markup'];
 
     const formatMoney = (value) => {
       const rounded = Math.round((Number(value) + Number.EPSILON) * 100) / 100;
       return `${rounded.toLocaleString('uk-UA', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} грн`;
+    };
+
+    const setAdminVisible = (visible) => {
+      adminPanel.classList.toggle('active', visible);
+      localStorage.setItem(STORAGE_KEY, visible ? '1' : '0');
+    };
+
+    const openAdminModal = () => {
+      adminModal.classList.add('active');
+      adminModal.setAttribute('aria-hidden', 'false');
+      adminPassword.value = '';
+      adminError.textContent = '';
+      setTimeout(() => adminPassword.focus(), 50);
+    };
+
+    const closeAdminModal = () => {
+      adminModal.classList.remove('active');
+      adminModal.setAttribute('aria-hidden', 'true');
+      adminPassword.value = '';
+      adminError.textContent = '';
     };
 
     function calculate() {
@@ -354,8 +501,33 @@
       document.getElementById('profitValue').textContent = formatMoney(profit);
     }
 
+    adminOpenBtn.addEventListener('click', openAdminModal);
+    adminCancelBtn.addEventListener('click', closeAdminModal);
+    adminCloseBtn.addEventListener('click', () => setAdminVisible(false));
+    adminModal.addEventListener('click', (event) => {
+      if (event.target === adminModal) closeAdminModal();
+    });
+
+    adminSubmitBtn.addEventListener('click', () => {
+      if (adminPassword.value === ADMIN_PASSWORD) {
+        setAdminVisible(true);
+        closeAdminModal();
+      } else {
+        adminError.textContent = 'Неверный пароль';
+      }
+    });
+
+    adminPassword.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        adminSubmitBtn.click();
+      }
+    });
+
     ids.forEach((id) => document.getElementById(id).addEventListener('input', calculate));
     ids.forEach((id) => document.getElementById(id).addEventListener('change', calculate));
+
+    setAdminVisible(localStorage.getItem(STORAGE_KEY) === '1');
     calculate();
   </script>
 </body>
