@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#111827" />
+  <title>Калькулятор 3D-печати</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: rgba(255,255,255,0.08);
+      --panel-strong: rgba(255,255,255,0.12);
+      --border: rgba(255,255,255,0.12);
+      --text: #f8fafc;
+      --muted: #cbd5e1;
+      --accent: #22c55e;
+      --accent-2: #38bdf8;
+      --danger: #f97316;
+      --shadow: 0 20px 40px rgba(0,0,0,0.24);
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(56,189,248,0.18), transparent 28%),
+        radial-gradient(circle at top left, rgba(34,197,94,0.14), transparent 24%),
+        linear-gradient(180deg, #111827 0%, #0f172a 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 20px 16px 36px;
+    }
+
+    .hero {
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      font-size: clamp(28px, 5vw, 42px);
+      line-height: 1.08;
+      margin: 0 0 8px;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.55;
+      max-width: 720px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 18px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .card-inner {
+      padding: 18px;
+    }
+
+    .section-title {
+      margin: 0 0 14px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .field label {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    input, select {
+      width: 100%;
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 14px;
+      background: rgba(15,23,42,0.65);
+      color: var(--text);
+      padding: 14px 14px;
+      font-size: 16px;
+      outline: none;
+      transition: 0.2s ease;
+      appearance: none;
+    }
+
+    input:focus, select:focus {
+      border-color: rgba(56,189,248,0.7);
+      box-shadow: 0 0 0 4px rgba(56,189,248,0.16);
+    }
+
+    .full { grid-column: 1 / -1; }
+
+    .note {
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(34,197,94,0.08);
+      border: 1px solid rgba(34,197,94,0.16);
+      color: #dcfce7;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .results {
+      display: grid;
+      gap: 12px;
+    }
+
+    .result {
+      padding: 16px;
+      border-radius: 18px;
+      background: var(--panel-strong);
+      border: 1px solid var(--border);
+    }
+
+    .result .label {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .result .value {
+      font-size: clamp(22px, 4.6vw, 34px);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .mini {
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(15,23,42,0.55);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .mini .label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+
+    .mini .value {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .formula {
+      margin-top: 16px;
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(15,23,42,0.55);
+      border: 1px dashed rgba(255,255,255,0.18);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .footer {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    @media (max-width: 760px) {
+      .grid, .form-grid, .mini-grid {
+        grid-template-columns: 1fr;
+      }
+      .wrap { padding: 16px 12px 28px; }
+      .card-inner { padding: 16px; }
+      input, select { font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <h1>Калькулятор стоимости 3D-печати</h1>
+      <p>
+        Введите вес, время печати, количество цветов и процент наценки — калькулятор сразу покажет
+        себестоимость, цену продажи и доход в гривнах.
+      </p>
+    </section>
+
+    <main class="grid">
+      <section class="card">
+        <div class="card-inner">
+          <h2 class="section-title">Входные данные</h2>
+          <div class="form-grid">
+            <div class="field">
+              <label for="plasticPrice">Цена пластика (грн/кг)</label>
+              <input id="plasticPrice" type="number" min="0" step="1" value="800" />
+            </div>
+            <div class="field">
+              <label for="hourlyRate">Стоимость часа печати (грн/ч)</label>
+              <input id="hourlyRate" type="number" min="0" step="1" value="10" />
+            </div>
+            <div class="field">
+              <label for="weight">Вес изделия (г)</label>
+              <input id="weight" type="number" min="0" step="0.1" value="100" />
+            </div>
+            <div class="field">
+              <label for="printTime">Время печати (ч)</label>
+              <input id="printTime" type="number" min="0" step="0.1" value="1" />
+            </div>
+            <div class="field">
+              <label for="colors">Количество цветов</label>
+              <select id="colors"></select>
+            </div>
+            <div class="field">
+              <label for="markup">Наценка (%)</label>
+              <select id="markup"></select>
+            </div>
+          </div>
+          <div class="note">
+            Коэффициент цветов считается так: <strong>1 + (цвета - 1) × 0.2</strong>.
+            То есть 1 цвет = 1.0, 2 цвета = 1.2, 3 цвета = 1.4 и т.д.
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-inner">
+          <h2 class="section-title">Результат</h2>
+          <div class="results">
+            <div class="result">
+              <div class="label">Себестоимость</div>
+              <div class="value" id="costValue">0 грн</div>
+            </div>
+            <div class="result">
+              <div class="label">Цена продажи</div>
+              <div class="value" id="saleValue">0 грн</div>
+            </div>
+            <div class="result">
+              <div class="label">Доход</div>
+              <div class="value" id="profitValue">0 грн</div>
+            </div>
+          </div>
+
+          <div class="mini-grid">
+            <div class="mini">
+              <div class="label">Цена за 1 г</div>
+              <div class="value" id="pricePerGramValue">0 грн</div>
+            </div>
+            <div class="mini">
+              <div class="label">Коэффициент цветов</div>
+              <div class="value" id="colorCoefValue">0</div>
+            </div>
+            <div class="mini">
+              <div class="label">Материал</div>
+              <div class="value" id="materialValue">0 грн</div>
+            </div>
+            <div class="mini">
+              <div class="label">Время</div>
+              <div class="value" id="timeValue">0 грн</div>
+            </div>
+          </div>
+
+          <div class="formula">
+            <div><strong>Формула:</strong></div>
+            <div>Материал = (цена пластика / 1000) × вес × коэффициент цветов</div>
+            <div>Себестоимость = материал + время печати × ставка за час</div>
+            <div>Цена продажи = себестоимость × (1 + наценка / 100)</div>
+            <div>Доход = цена продажи − себестоимость</div>
+          </div>
+
+          <div class="footer">
+            Подходит для телефона, планшета и компьютера. Это статический сайт без сервера — его можно бесплатно разместить на GitHub Pages.
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const colorsSelect = document.getElementById('colors');
+    const markupSelect = document.getElementById('markup');
+
+    for (let i = 1; i <= 10; i += 1) {
+      const option = document.createElement('option');
+      option.value = i;
+      option.textContent = `${i}`;
+      if (i === 1) option.selected = true;
+      colorsSelect.appendChild(option);
+    }
+
+    for (let i = 10; i <= 200; i += 10) {
+      const option = document.createElement('option');
+      option.value = i;
+      option.textContent = `${i}%`;
+      if (i === 100) option.selected = true;
+      markupSelect.appendChild(option);
+    }
+
+    const ids = [
+      'plasticPrice', 'hourlyRate', 'weight', 'printTime', 'colors', 'markup'
+    ];
+
+    const formatMoney = (value) => {
+      const rounded = Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+      return `${rounded.toLocaleString('uk-UA', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} грн`;
+    };
+
+    function calculate() {
+      const plasticPrice = Number(document.getElementById('plasticPrice').value) || 0;
+      const hourlyRate = Number(document.getElementById('hourlyRate').value) || 0;
+      const weight = Number(document.getElementById('weight').value) || 0;
+      const printTime = Number(document.getElementById('printTime').value) || 0;
+      const colors = Number(document.getElementById('colors').value) || 1;
+      const markup = Number(document.getElementById('markup').value) || 0;
+
+      const pricePerGram = plasticPrice / 1000;
+      const colorCoef = 1 + (colors - 1) * 0.2;
+      const material = pricePerGram * weight * colorCoef;
+      const timeCost = printTime * hourlyRate;
+      const cost = material + timeCost;
+      const salePrice = cost * (1 + markup / 100);
+      const profit = salePrice - cost;
+
+      document.getElementById('pricePerGramValue').textContent = formatMoney(pricePerGram);
+      document.getElementById('colorCoefValue').textContent = colorCoef.toFixed(1);
+      document.getElementById('materialValue').textContent = formatMoney(material);
+      document.getElementById('timeValue').textContent = formatMoney(timeCost);
+      document.getElementById('costValue').textContent = formatMoney(cost);
+      document.getElementById('saleValue').textContent = formatMoney(salePrice);
+      document.getElementById('profitValue').textContent = formatMoney(profit);
+    }
+
+    ids.forEach((id) => document.getElementById(id).addEventListener('input', calculate));
+    ids.forEach((id) => document.getElementById(id).addEventListener('change', calculate));
+    calculate();
+  </script>
+</body>
+</html>
